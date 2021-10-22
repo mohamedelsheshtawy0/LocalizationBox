@@ -1,0 +1,86 @@
+% All samples data by importing them from excel sheet but make sure that
+% they are all in the same frame
+X=X;
+Y=Y;
+Vx=Vx;
+Vy=Vy;
+Ax=Ax;
+Ay=Ay;
+%discretizing with frequency of 5 HZ, so dt=0.2 seconds
+dt=0.2;
+% this t array is used if we want to plot each state alone
+t=[0:1:1460];
+% Initial State covariance Matrix
+Pi=[1000,0,0,0;
+    0,1000,0,0;
+    0,0,1000,0;
+    0,0,0,1000];
+%Initial State Matrix
+Xi=[X(1);Y(1);Vx(1);Vy(1)];
+% A Matrix
+A=[1,0,dt,0;0,1,0,dt;0,0,1,0;0,0,0,1];
+% B Matrix
+B=[0.5*dt*dt,0;0,0.5*dt*dt;dt,0;0,dt];
+% R Matrix
+R=[10000,0,0,0;0,10000,0,0;0,0,10000,0;0,0,0,10000];
+% Q Matrix
+Q=[1,0,0,0;0,1,0,0;0,0,1,0;0,0,0,1];
+% C Matrix
+C=[1,0,0,0;0,1,0,0;0,0,1,0;0,0,0,1];
+% H Matrix
+H=[1,0,0,0;0,1,0,0;0,0,1,0;0,0,0,1];
+% Identity Matrix
+I=[1,0,0,0;0,1,0,0;0,0,1,0;0,0,0,1];
+% Current State
+Xc=Xi;
+% Current Covariance Matrix
+Pc=Pi;
+% Matrices of Predicted State and Output State
+% predicted states
+xp=zeros(1,1461);
+yp=zeros(1,1461);
+% output states
+xo=zeros(1,1461);
+yo=zeros(1,1461);
+xp(1)=X(1);
+yp(1)=Y(1);
+xo(1)=X(1);
+yo(1)=Y(1);
+% this loop continues for each sample data and here we had 1461 data 
+% so the number of iterations changes with number of samples
+for i=2:1:1461
+    %Predicted State
+    % getting input matrix
+    Uk=[Ax(i-1);Ay(i-1)];
+    % calculating predicted state
+    Xkp=A*Xc+B*Uk;
+    % insert the predicts into X and Y predicted arrays
+    xp(i)=Xkp(1,1);
+    yp(i)=Xkp(2,1);
+    %Predicted P
+    Pkp=A*Pc*transpose(A)+Q;
+    %Calculating Kalman Gain
+    K=(Pkp*H)*(inv(H*Pkp*transpose(H)+R));
+    %New Observation
+    Ykm=[X(i);Y(i);Vx(i);Vy(i)];
+    Yk=C*Ykm;
+    %Calculate Current State
+    Xk=Xkp+K*(Yk-H*Xkp);
+    % insert the outputs into X and Y outputs arrays
+    xo(i)=Xk(1,1);
+    yo(i)=Xk(2,1);
+    %update  P
+    Pk=(I-K*H)*Pkp;
+    %Current Becomes Previous
+    Xc=Xk;
+    Pc=Pk;
+end
+
+% this is to plot X and Y readings, X and Y predicted and X and Y outputs
+% of the filter.
+h1=animatedline('Marker','o','Color','b');
+addpoints(h1,X,Y)
+h2=animatedline('Marker','o','Color','r');
+addpoints(h2,xp,yp)
+h3=animatedline('Marker','o','Color','g');
+addpoints(h3,xo,yo)
